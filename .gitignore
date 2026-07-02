@@ -1,0 +1,10 @@
+.env
+.venv/
+knowledge/
+data/
+logs/
+chroma_db/
+drive_sync/
+__pycache__/
+*.pyc
+.DS_Store
