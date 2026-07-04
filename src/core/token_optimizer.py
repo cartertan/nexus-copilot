@@ -1,9 +1,23 @@
 import re
 
-_COMPLEXITY_KEYWORDS = [
-    "migrate", "migration", "architecture", "design", "enterprise",
-    "compliance", "regulatory", "crypto-agile", "pqc", "post-quantum",
-    "multi-domain", "zero-trust", "trade-off", "compare", "hybrid",
+# Signals a question is comparing options / weighing trade-offs — moderate
+# complexity bump.
+_COMPARISON_KEYWORDS = [
+    "compare", " vs ", "versus", "trade-off", "tradeoff", "difference between",
+]
+
+# Signals a systems-design / architecture-level task — large complexity bump.
+_ARCHITECTURE_KEYWORDS = [
+    "architecture", "design a", "multi-region", "multi-domain", "failover",
+    "hsm", "zero-trust", "post-quantum", "pqc", "crypto-agile", "migration",
+    "migrate",
+]
+
+# Signals enterprise scale / regulatory context — small additional bump on
+# top of an architecture-level task.
+_SCALE_KEYWORDS = [
+    "national bank", "enterprise", "compliance", "regulatory", "global",
+    "multi-national",
 ]
 
 _LOCAL_OVERRIDE_TERMS = [
@@ -12,19 +26,32 @@ _LOCAL_OVERRIDE_TERMS = [
 ]
 
 
+def _length_bonus(question: str) -> int:
+    n = len(question)
+    if n <= 30:
+        return 0
+    if n <= 80:
+        return 3
+    if n <= 150:
+        return 8
+    if n <= 250:
+        return 12
+    return 18
+
+
+def _keyword_bonus(q_lower: str, keywords: list[str], weight: int, cap: int) -> int:
+    total = sum(weight for kw in keywords if kw in q_lower)
+    return min(total, cap)
+
+
 def score_complexity(question: str) -> int:
-    score = 20
     q_lower = question.lower()
 
-    if len(question) > 150:
-        score += 15
-
-    for kw in _COMPLEXITY_KEYWORDS:
-        if kw in q_lower:
-            score += 10
-
-    if "?" in question and len(question) > 200:
-        score += 10
+    score = 15
+    score += _length_bonus(question)
+    score += _keyword_bonus(q_lower, _COMPARISON_KEYWORDS, weight=15, cap=25)
+    score += _keyword_bonus(q_lower, _ARCHITECTURE_KEYWORDS, weight=20, cap=40)
+    score += _keyword_bonus(q_lower, _SCALE_KEYWORDS, weight=10, cap=20)
 
     return min(score, 100)
 
